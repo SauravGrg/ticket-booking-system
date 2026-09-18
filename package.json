@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/SauravGrg/ticket-booking-system#readme",
   "dependencies": {
+    "dotenv": "^18.0.0",
     "express": "^5.2.1",
     "pg": "^8.23.0"
   }
