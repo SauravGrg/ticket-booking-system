@@ -3,6 +3,8 @@ require("dotenv").config();
 const express = require("express");
 const { Pool } = require("pg");
 const bcrypt = require("bcrypt");
+const session = require("express-session");
+const pgSession = require("connect-pg-simple")(session);
 
 const app = express();
 const port = 5000;
@@ -16,6 +18,21 @@ const pool = new Pool({
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
 });
+
+app.use(session({
+    store: new pgSession({
+        pool: pool,
+        createTableIfMissing: true
+    }),
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        secure: false,
+        maxAge: 1000 * 60 * 60
+    }
+}));
 
 app.get("/", (req, res) => {
     res.send("Hello World! I am runnin on port 5000 right now");
@@ -101,9 +118,12 @@ app.post("/api/login", async (req, res) => {
             });
         }
 
+        req.session.user_id = user.user_id;
+
         res.status(200).json({
             message: "Login successful"
         });
+
     } catch (err) {
         console.log(err.message);
         res.status(500).json({
@@ -111,6 +131,30 @@ app.post("/api/login", async (req, res) => {
         });
     }
 });
+
+app.get("/api/session", (req, res) => {
+    res.json({
+        user_id: req.session.user_id
+    });
+});
+
+app.post("/api/logout", (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            console.log(err.message);
+
+            return res.status(500).json({
+                message: "Something went wrong"
+            });
+        }
+
+        res.clearCookie("connect.sid");
+        
+        res.json({
+            message: "Logout successful"
+        })
+    })
+})
 
 pool.query("SELECT NOW()", (err, result) => {
     if (err) {
