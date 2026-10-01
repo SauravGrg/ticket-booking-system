@@ -1,122 +1,173 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState } from "react";
 
+// Store the values entered into the registration form
 function App() {
-  const [count, setCount] = useState(0)
+  const [first_name, setFirstName] = useState("");
+  const [last_name, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
+  // Store messages received from the server
+  const [message, setMessage] = useState("");
+
+  // Send the registration information to the backend
+  async function registerUser(event) {
+    // Prevent the page from refreshing when the form is submitted
+    event.preventDefault();
+
+    // Send a POST request to the registration route
+    const response = await fetch("http://localhost:5000/api/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      }, 
+      // Convert the registration information into JSON
+      body: JSON.stringify({
+        first_name: first_name,
+        last_name: last_name,
+        email: email,
+        password: password
+      })
+    });
+    
+    // Get the response from the server as JSON
+    const data = await response.json();
+
+    // Display the message returned by the server
+    setMessage(data.message);
+  }
+
+  // Send the login information to the backend
+  async function loginUser(event) {
+    event.preventDefault();
+
+    // Send a POST request to the login route
+    const response = await fetch("http://localhost:5000/api/login", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        credentials: "include",
+        body: JSON.stringify({
+            email: email,
+            password: password
+        })
+    });
+    
+    // Get the response from the server as JSON
+    const data = await response.json();
+
+    setMessage(data.message);
+  }
+
+  // Check whether a user is currently logged in
+  async function checkSession() {
+    const response = await fetch("http://localhost:5000/api/session", {
+      credentials: "include"
+    });
+
+    const data = await response.json();
+
+    // Check if a user ID exists in the current session
+    if (data.user_id) {
+      setMessage("User is logged in. User ID: " + data.user_id);
+    } else {
+      setMessage("No user is logged in")
+    }
+  }
+
+  // Log the current user out
+  async function logoutUser() {
+    const response = await fetch("http://localhost:5000/api/logout", {
+      method: "POST",
+      credentials: "include"
+    });
+
+    const data = await response.json();
+
+    setMessage(data.message);
+  }
+
+  // Display the applicatio
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    <div>
+    {/* Registration section */}
+      <h1>Create Account</h1>
+
+      <form onSubmit={registerUser}>
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
+          <label>First Name</label>
+          <input 
+            type="text"
+            value={first_name}
+            onChange={(event) => setFirstName(event.target.value)}
+          />
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+        <div>
+          <label>Last Name</label>
+          <input 
+            type="text"
+            value={last_name}
+            onChange={(event) => setLastName(event.target.value)}
+          />
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        <div>
+          <label>Email</label>
+          <input 
+            type="text"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+        </div>
+
+        <div>
+          <label>Password</label>
+          <input 
+            type="text"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </div>
+
+        {/* Submit the registration form */}
+        <button type="submit">Register</button>
+        <p>{message}</p>
+      </form>
+
+      {/* Login section */}
+      <h1>Login</h1>
+
+    <form onSubmit={loginUser}>
+        <div>
+            <label>Email</label>
+            <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+            />
+        </div>
+
+        <div>
+            <label>Password</label>
+            <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+            />
+        </div>
+
+        <button type="submit">Login</button>
+    </form>
+
+    <button type="button" onClick={checkSession}> Check Session </button>
+
+    <button type="button" onClick={logoutUser}> Logout </button>
+    {/* Display messages from the server */}
+      <p>{message}</p>
+    </div>
+  );
 }
 
-export default App
+export default App;
