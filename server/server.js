@@ -176,6 +176,45 @@ app.get("/api/session", (req, res) => {
     });
 });
 
+
+ // Get the profile information of the logged-in user
+app.get("/api/profile", async (req, res) => {
+    // Check if the user is logged in
+    if (!req.session.user_id) {
+        return res.status(401).json({
+            message: "Please log in first"
+        });
+    }
+
+    try {
+        // Find the user using the ID stored in the session
+        const result = await pool.query(
+            `SELECT user_id, first_name, last_name, email, role, account_status
+            FROM users
+            WHERE user_id = $1`,
+            [req.session.user_id]
+        );
+
+        // Check if the user exists
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                message: "User not found"
+            });
+        }
+
+        // Return the user's profile information
+        res.json(result.rows[0]);
+
+    } catch (err) {
+        console.log(err.message);
+
+        res.status(500).json({
+            message: "Something went wrong"
+        });
+    }
+});
+
+
 // Log the user out
 app.post("/api/logout", (req, res) => {
     // Destroy the current session

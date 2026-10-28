@@ -76,6 +76,28 @@ function App() {
     }
   }
 
+
+  // Get the profile information of the logged-in user
+  async function getProfile() {
+    const response = await fetch("http://localhost:5000/api/profile", {
+      credentials: "include"
+    });
+
+    const data = await response.json();
+
+    // Display the profile information
+    if (response.ok) {
+      setMessage(
+        "Name: " + data.first_name + " " + data.last_name +
+        ", Email: " + data.email +
+        ", Role: " + data.role
+      );
+    } else {
+      setMessage(data.message);
+    }
+  }
+
+
   // Log the current user out
   async function logoutUser() {
     const response = await fetch("http://localhost:5000/api/logout", {
@@ -162,6 +184,7 @@ function App() {
     </form>
 
     <button type="button" onClick={checkSession}> Check Session </button>
+    <button type="button" onClick={getProfile}> View Profile </button>
 
     <button type="button" onClick={logoutUser}> Logout </button>
     {/* Display messages from the server */}
