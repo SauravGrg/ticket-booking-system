@@ -169,6 +169,61 @@ app.post("/api/login", async (req, res) => {
     }
 });
 
+
+ // Update the logged-in user's profile
+app.put("/api/profile", async (req, res) => {
+
+    // Check if the user is logged in
+    if (!req.session.user_id) {
+        return res.status(401).json({
+            message: "Please log in first"
+        });
+    }
+
+    // Get the updated information from the request
+    const { first_name, last_name, email } = req.body;
+
+    // Make sure all fields were provided
+    if (!first_name || !last_name || !email) {
+        return res.status(400).json({
+            message: "Please fill in all fields"
+        });
+    }
+
+    try {
+        // Update the user's profile in the database
+        const result = await pool.query(
+            `UPDATE users
+             SET first_name = $1, last_name = $2, email = $3,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE user_id = $4
+             RETURNING user_id, first_name, last_name, email, role, account_status`,
+            [first_name, last_name, email, req.session.user_id]
+        );
+
+        // Return the updated profile
+        res.json({
+            message: "Profile updated successfully",
+            user: result.rows[0]
+        });
+
+    } catch (err) {
+        // Handle duplicate email addresses
+        if (err.code === "23505") {
+            return res.status(409).json({
+                message: "That email address is already in use"
+            });
+        }
+
+        console.log(err.message);
+
+        res.status(500).json({
+            message: "Something went wrong"
+        });
+    }
+});
+
+
 // Check whether the logged-in user has the required role
 function checkRole(requiredRole) {
     return async (req, res, next) => {
