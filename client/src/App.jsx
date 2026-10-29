@@ -580,7 +580,6 @@ function App() {
                     <label>New Password (optional)</label>
                     <input
                       type="password"
-                      placeholder="Leave blank to keep existing"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                     />
