@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import "./App.css";
 
 // Store the values entered into the registration form
 function App() {
+  const [activeTab, setActiveTab] = useState("home");
   const [first_name, setFirstName] = useState("");
   const [last_name, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -11,6 +13,7 @@ function App() {
   const [message, setMessage] = useState("");
   const [profileFirstName, setProfileFirstName] = useState("");
   const [profileLastName, setProfileLastName] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [role, setRole] = useState("");
@@ -23,32 +26,69 @@ function App() {
   const [eventLocation, setEventLocation] = useState("");
   const [eventCapacity, setEventCapacity] = useState("");
 
+  // Organizer events list state
+  const [myEvents, setMyEvents] = useState([]);
 
+  // Check the session when the app first loads
+  useEffect(() => {
+    async function loadSession() {
+      try {
+        const response = await fetch("http://localhost:5000/api/session", {
+          credentials: "include"
+        });
+        const data = await response.json();
+
+        if (data.user_id) {
+          setIsLoggedIn(true);
+          getProfile();
+        }
+      } catch (err) {
+        console.error("Session check error:", err);
+      }
+    }
+
+    loadSession();
+  }, []);
+
+  // Fetch organizer events if logged in as an Organizer
+  useEffect(() => {
+    if (isLoggedIn && role === "Organizer") {
+      fetchOrganizerEvents();
+    }
+  }, [isLoggedIn, role]);
+  
   // Send the registration information to the backend
   async function registerUser(event) {
     // Prevent the page from refreshing when the form is submitted
     event.preventDefault();
 
-    // Send a POST request to the registration route
-    const response = await fetch("http://localhost:5000/api/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      }, 
-      // Convert the registration information into JSON
-      body: JSON.stringify({
-        first_name: first_name,
-        last_name: last_name,
-        email: email,
-        password: password
-      })
-    });
+    try {
+      const response = await fetch("http://localhost:5000/api/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        }, 
+        // Convert the registration information into JSON
+        body: JSON.stringify({
+          first_name: first_name,
+          last_name: last_name,
+          email: email,
+          password: password
+        })
+      });
     
-    // Get the response from the server as JSON
-    const data = await response.json();
+      const data = await response.json();
+      setMessage(data.message);
 
-    // Display the message returned by the server
-    setMessage(data.message);
+      if (response.ok) {
+        setEmail("");
+        setPassword("");
+        setShowRegister(false);
+      }
+    } catch (err) {
+        console.error(err);
+        setMessage("Failed to connect to the server.")
+    }
   }
 
   // Send the login information to the backend
@@ -79,41 +119,6 @@ function App() {
     }
   }
 
-  // Check whether a user is currently logged in
-  async function checkSession() {
-    const response = await fetch("http://localhost:5000/api/session", {
-      credentials: "include"
-    });
-
-    const data = await response.json();
-
-    // Check if a user ID exists in the current session
-    if (data.user_id) {
-      setMessage("User is logged in. User ID: " + data.user_id);
-    } else {
-      setMessage("No user is logged in")
-    }
-  }
-
-    // Check the session when the app first loads
-  useEffect(() => {
-    async function loadSession() {
-      const response = await fetch("http://localhost:5000/api/session", {
-        credentials: "include"
-      });
-
-      const data = await response.json();
-
-      if (data.user_id) {
-        setIsLoggedIn(true);
-        getProfile();
-      }
-    }
-
-    loadSession();
-  }, []);
-
-
   // Get the profile information of the logged-in user
   async function getProfile() {
     const response = await fetch("http://localhost:5000/api/profile", {
@@ -128,61 +133,53 @@ function App() {
       setProfileLastName(data.last_name);
       setEmail(data.email);
       setRole(data.role);
-      setMessage(
-        "Name: " + data.first_name + " " + data.last_name +
-        ", Email: " + data.email +
-        ", Role: " + data.role
-      );
     } else {
       setMessage(data.message);
     }
   }
 
-
   // Update the user's profile
   async function updateProfile() {
+    const payload = {
+      first_name: profileFirstName,
+      last_name: profileLastName,
+      email: email
+    };
+
+    if (newPassword.trim() !== "") {
+      payload.password = newPassword;
+    }
+
     const response = await fetch("http://localhost:5000/api/profile", {
       method: "PUT",
       credentials: "include",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        first_name: profileFirstName,
-        last_name: profileLastName,
-        email: email
-})
+      body: JSON.stringify(payload)
     });
 
     const data = await response.json();
 
     // Display the result
+    setMessage(data.message);
     if (response.ok) {
-      setMessage(data.message);
-    } else {
-      setMessage(data.message);
+      setNewPassword("");
     }
   }
 
-
-  // Log the current user out
-  async function logoutUser() {
-    const response = await fetch("http://localhost:5000/api/logout", {
-      method: "POST",
+  // Fetch all events created by the logged-in organizer
+  async function fetchOrganizerEvents() {
+    const response = await fetch("http://localhost:5000/api/organizer/events", {
       credentials: "include"
     });
-
-    const data = await response.json();
-
-    setMessage(data.message);
-
     if (response.ok) {
-      setIsLoggedIn(false);
+      const data = await response.json();
+      setMyEvents(data);
     }
   }
 
-
-  // Create a new event
+    // Create a new event
   async function createEvent(event) {
     event.preventDefault();
 
@@ -213,246 +210,386 @@ function App() {
       setEventTime("");
       setEventLocation("");
       setEventCapacity("");
+      fetchOrganizerEvents();
     }
   }
 
+  // Log the current user out
+  async function logoutUser() {
+    const response = await fetch("http://localhost:5000/api/logout", {
+      method: "POST",
+      credentials: "include"
+    });
 
-  // Display the applicatio
+    const data = await response.json();
+
+    setMessage(data.message);
+
+    if (response.ok) {
+      setIsLoggedIn(false);
+      setRole("");
+      setProfileFirstName("");
+      setProfileLastName("");
+      setEmail("");
+      setPassword("");
+      setMyEvents([]);
+    }
+  }
+
+  // Display the application
   return (
-    <div> 
-      {!isLoggedIn && (
-        <>
-          {!showRegister ? (
-            <>
-              <h1>Login</h1>
+    <div className="dashboard-layout">
+      {!isLoggedIn ? (
+        <div className="auth-wrapper">
+          <div className="auth-card">
+            <h1>{!showRegister ? "Login" : "Create Account"}</h1>
+            <p className="tagline">Your pass to every moment</p>
 
+            {!showRegister ? (
               <form onSubmit={loginUser}>
-                <div>
+                <div className="form-group">
                   <label>Email</label>
                   <input
                     type="email"
+                    required
                     value={email}
-                    onChange={(event) => setEmail(event.target.value)}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
-
-                <div>
+                <div className="form-group">
                   <label>Password</label>
                   <input
                     type="password"
+                    required
                     value={password}
-                    onChange={(event) => setPassword(event.target.value)}
+                    onChange={(e) => setPassword(e.target.value)}
                   />
                 </div>
-
-                <button type="submit">Login</button>
+                <button type="submit" className="btn-primary">Login</button>
+                <p style={{ marginTop: "15px", fontSize: "14px", color: "#444" }}>
+                  Don't have an account?{" "}
+                  <button type="button" className="btn-secondary" onClick={() => setShowRegister(true)}>
+                    Create Account
+                  </button>
+                </p>
               </form>
-
-              <p>
-                Don't have an account?
-                <button
-                  type="button"
-                  onClick={() => setShowRegister(true)}
-                >
-                  Create Account
-                </button>
-              </p>
-            </>
-          ) : (
-            <>
-              <h1>Create Account</h1>
-
+            ) : (
               <form onSubmit={registerUser}>
-                <div>
+                <div className="form-group">
                   <label>First Name</label>
                   <input
                     type="text"
+                    required
                     value={first_name}
-                    onChange={(event) => setFirstName(event.target.value)}
+                    onChange={(e) => setFirstName(e.target.value)}
                   />
                 </div>
-
-                <div>
+                <div className="form-group">
                   <label>Last Name</label>
                   <input
                     type="text"
+                    required
                     value={last_name}
-                    onChange={(event) => setLastName(event.target.value)}
+                    onChange={(e) => setLastName(e.target.value)}
                   />
                 </div>
-
-                <div>
+                <div className="form-group">
                   <label>Email</label>
                   <input
                     type="email"
+                    required
                     value={email}
-                    onChange={(event) => setEmail(event.target.value)}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
-
-                <div>
+                <div className="form-group">
                   <label>Password</label>
                   <input
                     type="password"
+                    required
                     value={password}
-                    onChange={(event) => setPassword(event.target.value)}
+                    onChange={(e) => setPassword(e.target.value)}
                   />
                 </div>
-
-                <button type="submit">Register</button>
+                <button type="submit" className="btn-primary">Register</button>
+                <p style={{ marginTop: "15px", fontSize: "14px", color: "#444" }}>
+                  Already have an account?{" "}
+                  <button type="button" className="btn-secondary" onClick={() => { setMessage(""); setShowRegister(false)}}>
+                    Login
+                  </button>
+                </p>
               </form>
+            )}
 
-              <p>
-                Already have an account?
-                <button
-                  type="button"
-                  onClick={() => setShowRegister(false)}
-                >
-                  Login
-                </button>
-              </p>
-            </>
-          )}
+            {message && (
+              <div 
+                style={{
+                  marginTop: "16px",
+                  padding: "10px 14px",
+                  borderRadius: "6px",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  backgroundColor: message.toLowerCase().includes("success") ? "#e6fffa" : "#fff5f5",
+                  color: message.toLowerCase().includes("success") ? "#234e52" : "#c53030",
+                  border: message.toLowerCase().includes("success") ? "1px solid #b2f5ea" : "1px solid #fed7d7"
+                }}
+              >
+                {message}
+              </div>
+            )}
+            
+          </div>
+        </div>
+      ) : (
+        <>
+          <aside className="sidebar">
+            <div>
+              <div className="sidebar-title">EVENT PASS</div>
+              <ul className="nav-links">
+                <li>
+                  <button
+                    className={`nav-item ${activeTab === "home" ? "active" : ""}`}
+                    onClick={() => setActiveTab("home")}
+                  >
+                    HOME
+                  </button>
+                </li>
+                {role === "Organizer" && (
+                  <li>
+                    <button
+                      className={`nav-item ${activeTab === "events" ? "active" : ""}`}
+                      onClick={() => setActiveTab("events")}
+                    >
+                      My Events
+                    </button>
+                  </li>
+                )}
+                {role === "Regular User" && (
+                  <li>
+                    <button
+                      className={`nav-item ${activeTab === "bookings" ? "active" : ""}`}
+                      onClick={() => setActiveTab("bookings")}
+                    >
+                      My Bookings
+                    </button>
+                  </li>
+                )}
+                {role === "Administrator" && (
+                  <li>
+                    <button
+                      className={`nav-item ${activeTab === "admin" ? "active" : ""}`}
+                      onClick={() => setActiveTab("admin")}
+                    >
+                      Admin Controls
+                    </button>
+                  </li>
+                )}
+                <li>
+                  <button
+                    className={`nav-item ${activeTab === "profile" ? "active" : ""}`}
+                    onClick={() => setActiveTab("profile")}
+                  >
+                    Profile
+                  </button>
+                </li>
+              </ul>
+            </div>
+            <button className="btn-logout" onClick={logoutUser}>Logout</button>
+          </aside>
 
-          <p>{message}</p>
+          <main className="main-content">
+            <header className="top-bar">
+              <h2>{role} Dashboard</h2>
+              <div className="user-badge">
+                Logged in: <strong>{profileFirstName} {profileLastName}</strong>
+              </div>
+            </header>
+
+            {activeTab === "home" && (
+              <div>
+                {role === "Organizer" && (
+                  <div className="content-card">
+                    <h3>+ Create New Event</h3>
+                    <form onSubmit={createEvent}>
+                      <div className="two-column-grid">
+                        <div>
+                          <div className="form-group">
+                            <label>Event Title</label>
+                            <input
+                              type="text"
+                              required
+                              maxLength="200"
+                              value={eventTitle}
+                              onChange={(e) => setEventTitle(e.target.value)}
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Date</label>
+                            <input
+                              type="date"
+                              required
+                              min={new Date().toLocaleDateString("en-CA")}
+                              value={eventDate}
+                              onChange={(e) => setEventDate(e.target.value)}
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Location</label>
+                            <input
+                              type="text"
+                              required
+                              maxLength="1000"
+                              value={eventLocation}
+                              onChange={(e) => setEventLocation(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <div className="form-group">
+                            <label>Description</label>
+                            <textarea
+                              rows="3"
+                              required
+                              maxLength="5000"
+                              value={eventDescription}
+                              onChange={(e) => setEventDescription(e.target.value)}
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Time</label>
+                            <input
+                              type="time"
+                              required
+                              value={eventTime}
+                              onChange={(e) => setEventTime(e.target.value)}
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Capacity</label>
+                            <input
+                              type="number"
+                              required
+                              min="1"
+                              max="100000"
+                              value={eventCapacity}
+                              onChange={(e) => setEventCapacity(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <button type="submit" className="btn-primary" style={{ maxWidth: "250px", display: "block", margin: "10px auto 0" }}>
+                        Submit Event
+                      </button>
+                    </form>
+                  </div>
+                )}
+
+                <div>
+                  <h3 style={{ marginBottom: "15px" }}>
+                    {role === "Organizer" ? "Your Current Listings" : "Upcoming Events"}
+                  </h3>
+                  {role === "Organizer" && myEvents.length === 0 ? (
+                    <p style={{ color: "#aaa" }}>No events created yet.</p>
+                  ) : (
+                    <div className="event-grid">
+                      {myEvents.map((ev) => (
+                        <div key={ev.event_id} className="event-card">
+                          <div>
+                            <h4>{ev.title}</h4>
+                            <p>{ev.description}</p>
+                            <p><strong>Date:</strong> {ev.date ? ev.date.substring(0, 10) : ""} at {ev.time}</p>
+                            <p><strong>Location:</strong> {ev.location}</p>
+                          </div>
+                          <div>
+                            <span className="badge">Capacity: {ev.capacity}</span>
+                            <span className="badge" style={{ marginLeft: "8px", backgroundColor: "#c6f6d5", color: "#22543d" }}>
+                              {ev.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {role !== "Organizer" && (
+                    <div className="content-card">
+                      
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "events" && role === "Organizer" && (
+              <div>
+                <h3 style={{ marginBottom: "20px" }}>My Created Events</h3>
+                <div className="event-grid">
+                  {myEvents.map((ev) => (
+                    <div key={ev.event_id} className="event-card">
+                      <div>
+                        <h4>{ev.title}</h4>
+                        <p>{ev.description}</p>
+                        <p><strong>Date:</strong> {ev.date ? ev.date.substring(0, 10) : ""} at {ev.time}</p>
+                        <p><strong>Location:</strong> {ev.location}</p>
+                      </div>
+                      <div>
+                        <span className="badge">Capacity: {ev.capacity}</span>
+                        <span className="badge" style={{ marginLeft: "8px", backgroundColor: "#c6f6d5", color: "#22543d" }}>
+                          {ev.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "profile" && (
+              <div className="content-card" style={{ maxWidth: "600px" }}>
+                <h3>User Profile</h3>
+                <form onSubmit={updateProfile}>
+                  <div className="form-group">
+                    <label>First Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={profileFirstName}
+                      onChange={(e) => setProfileFirstName(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Last Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={profileLastName}
+                      onChange={(e) => setProfileLastName(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Email</label>
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>New Password (optional)</label>
+                    <input
+                      type="password"
+                      placeholder="Leave blank to keep existing"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
+                  </div>
+                  <button type="submit" className="btn-primary">Save Changes</button>
+                </form>
+              </div>
+            )}
+          </main>
         </>
       )}
-
-
-    {isLoggedIn && (
-      <>
-        <h1>{role} Dashboard</h1>
-
-        {role === "Administrator" && (
-          <div>
-            <h3>Administrator Options</h3>
-            {/* We will add event management options here */}
-          </div>
-        )}
-
-
-        {role === "Organizer" && (
-          <div>
-            <h3>Organizer Options</h3>
-            <h4>Create Event</h4>
-
-            <form onSubmit={createEvent}>
-              <div>
-                <label>Event Title</label>
-                <input
-                  type="text"
-                  maxLength="200"
-                  required
-                  value={eventTitle}
-                  onChange={(event) => setEventTitle(event.target.value)}
-                />
-              </div>
-
-              <div>
-                <label>Description</label>
-                <textarea
-                  maxLength="5000"
-                  required
-                  value={eventDescription}
-                  onChange={(event) => setEventDescription(event.target.value)}
-                />
-              </div>
-
-              <div>
-                <label>Date</label>
-                <input
-                  type="date"
-                  required
-                  min={new Date().toLocaleDateString("en-CA")}
-                  value={eventDate}
-                  onChange={(event) => setEventDate(event.target.value)}
-                />
-              </div>
-
-              <div>
-                <label>Time</label>
-                <input
-                  type="time"
-                  required
-                  value={eventTime}
-                  onChange={(event) => setEventTime(event.target.value)}
-                />
-              </div>
-
-              <div>
-                <label>Location</label>
-                <input
-                  type="text"
-                  maxLength="1000"
-                  required
-                  value={eventLocation}
-                  onChange={(event) => setEventLocation(event.target.value)}
-                />
-              </div>
-
-              <div>
-                <label>Capacity</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="100000"
-                  step="1"
-                  required
-                  value={eventCapacity}
-                  onChange={(event) => setEventCapacity(event.target.value)}
-                />
-              </div>
-
-              <button type="submit">Create Event</button>
-            </form>
-          </div>
-        )}
-
-
-        {role === "Regular User" && (
-          <div>
-            <h3>User Options</h3>
-            {/* We will add ticket booking options here */}
-          </div>
-        )}
-        <button type="button" onClick={checkSession}> Check Session </button>
-        <button type="button" onClick={getProfile}> View Profile </button>
-
-        <div>
-          <h3>Update Profile</h3>
-
-          <input
-            type="text"
-            placeholder="First Name"
-            value={profileFirstName}
-            onChange={(event) => setProfileFirstName(event.target.value)}
-          />
-
-          <input
-            type="text"
-            placeholder="Last Name"
-            value={profileLastName}
-            onChange={(event) => setProfileLastName(event.target.value)}
-          />
-
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-          <button type="button" onClick={updateProfile}>
-            Update Profile
-          </button>
-        </div>
-
-
-        <button type="button" onClick={logoutUser}> Logout </button>
-        {/* Display messages from the server */}
-          <p>{message}</p>
-      </>
-    )}
     </div>
   );
 }

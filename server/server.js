@@ -153,6 +153,13 @@ app.post("/api/login", async (req, res) => {
             });
         }
 
+        // Check account status
+        if (user.account_status === "Deactivated") {
+            return res.status(403).json({
+                message: "Your account is deactivated. Please contact an administrator."
+            });
+        }
+
         // Store the user's ID in the session after successful login
         req.session.user_id = user.user_id;
 
@@ -181,44 +188,53 @@ app.put("/api/profile", async (req, res) => {
     }
 
     // Get the updated information from the request
-    const { first_name, last_name, email } = req.body;
+    const { first_name, last_name, email, password } = req.body;
 
     // Make sure all fields were provided
     if (!first_name || !last_name || !email) {
         return res.status(400).json({
-            message: "Please fill in all fields"
+            message: "Name and email are required"
         });
     }
 
     try {
-        // Update the user's profile in the database
-        const result = await pool.query(
-            `UPDATE users
-             SET first_name = $1, last_name = $2, email = $3,
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE user_id = $4
-             RETURNING user_id, first_name, last_name, email, role, account_status`,
-            [first_name, last_name, email, req.session.user_id]
-        );
+        let result;
 
-        // Return the updated profile
+        if (password && password.trim() !== "") {
+            if (!isValidPassword(password)) {
+                return res.status(400).json({
+                    message: "Password must be at least 8 characters and include an uppercase letter, lowercase letter, number, and special character"
+                });
+            }
+            const hashedPassword = await bcrypt.hash(password, 10);
+            result = await pool.query(
+                `UPDATE users
+                 SET first_name = $1, last_name = $2, email = $3, password = $4, updated_at = CURRENT_TIMESTAMP
+                 WHERE user_id = $5
+                 RETURNING user_id, first_name, last_name, email, role, account_status`,
+                [first_name, last_name, email, hashedPassword, req.session.user_id]
+            );
+        } else {
+            result = await pool.query(
+                `UPDATE users
+                 SET first_name = $1, last_name = $2, email = $3, updated_at = CURRENT_TIMESTAMP
+                 WHERE user_id = $4
+                 RETURNING user_id, first_name, last_name, email, role, account_status`,
+                [first_name, last_name, email, req.session.user_id]
+            );
+        }
+
         res.json({
             message: "Profile updated successfully",
             user: result.rows[0]
         });
-
     } catch (err) {
-        // Handle duplicate email addresses
         if (err.code === "23505") {
-            return res.status(409).json({
-                message: "That email address is already in use"
-            });
+            return res.status(409).json({ message: "That email address is already in use" });
         }
-
-        console.log(err.message);
-
-        res.status(500).json({
-            message: "Something went wrong"
+        console.error(err.message);
+        res.status(500).json({ 
+            message: "Something went wrong" 
         });
     }
 });
@@ -268,6 +284,20 @@ function checkRole(requiredRole) {
     };
 }
 
+app.get("/api/organizer/events", checkRole("Organizer"), async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT * FROM events 
+             WHERE user_id = $1 
+             ORDER BY date ASC, time ASC`,
+            [req.session.user_id]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: "Something went wrong" });
+    }
+});
 
 app.post("/api/events", checkRole("Organizer"), async (req, res) => {
     const { title, description, date, time, location, capacity } = req.body;
@@ -286,7 +316,8 @@ app.post("/api/events", checkRole("Organizer"), async (req, res) => {
         return res.status(400).json({ message: "Capacity must be between 1 and 100000" });
     }
 
-    if (new Date(date + "T00:00:00") < new Date(new Date().toDateString())) {
+    const todayString = new Date().toLocaleDateString("en-CA"); // produces YYYY-MM-DD
+    if (date < todayString) {
         return res.status(400).json({ message: "Event date cannot be in the past" });
     }
 
