@@ -141,33 +141,41 @@ function App() {
   }
 
   // Update the user's profile
-  async function updateProfile() {
+  async function updateProfile(event) {
+    if (event) event.preventDefault();
+
     const payload = {
       first_name: profileFirstName,
       last_name: profileLastName,
       email: email
     };
 
-    if (newPassword.trim() !== "") {
+    if (newPassword && newPassword.trim() !== "") {
       payload.password = newPassword;
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/profile`, {
-      method: "PUT",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/profile`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    // Display the result
-    setMessage(data.message);
-    if (response.ok) {
-      setNewPassword("");
-    }
+      // Display the result
+      setMessage(data.message);
+      if (response.ok) {
+        setNewPassword("");
+        getProfile();
+      }
+  } catch (err) {
+      console.error("Profile update error:", err);
+      setMessage("Failed to update profile.");
+  }
   }
 
   // Fetch all events created by the logged-in organizer
@@ -548,6 +556,23 @@ function App() {
             {activeTab === "profile" && (
               <div className="content-card" style={{ maxWidth: "600px" }}>
                 <h3>User Profile</h3>
+                {message && (
+                  <div 
+                    style={{
+                      marginBottom: "16px",
+                      padding: "10px 14px",
+                      borderRadius: "6px",
+                      fontSize: "13px",
+                      fontWeight: "600",
+                      backgroundColor: message.toLowerCase().includes("success") ? "#e6fffa" : "#fff5f5",
+                      color: message.toLowerCase().includes("success") ? "#234e52" : "#c53030",
+                      border: message.toLowerCase().includes("success") ? "1px solid #b2f5ea" : "1px solid #fed7d7"
+                    }}
+                  >
+                    {message}
+                  </div>
+                )}
+
                 <form onSubmit={updateProfile}>
                   <div className="form-group">
                     <label>First Name</label>
