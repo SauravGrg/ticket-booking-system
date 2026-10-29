@@ -93,6 +93,18 @@ function App() {
     }
   }
 
+  // Automatically clear notification messages after 3 seconds
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => {
+        setMessage("");
+      }, 3000);
+
+      // Clean up timer if a new message arrives before 3s
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+
   // Send the login information to the backend
   async function loginUser(event) {
     event.preventDefault();
@@ -556,23 +568,6 @@ function App() {
             {activeTab === "profile" && (
               <div className="content-card" style={{ maxWidth: "600px" }}>
                 <h3>User Profile</h3>
-                {message && (
-                  <div 
-                    style={{
-                      marginBottom: "16px",
-                      padding: "10px 14px",
-                      borderRadius: "6px",
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      backgroundColor: message.toLowerCase().includes("success") ? "#e6fffa" : "#fff5f5",
-                      color: message.toLowerCase().includes("success") ? "#234e52" : "#c53030",
-                      border: message.toLowerCase().includes("success") ? "1px solid #b2f5ea" : "1px solid #fed7d7"
-                    }}
-                  >
-                    {message}
-                  </div>
-                )}
-
                 <form onSubmit={updateProfile}>
                   <div className="form-group">
                     <label>First Name</label>
@@ -609,6 +604,24 @@ function App() {
                       onChange={(e) => setNewPassword(e.target.value)}
                     />
                   </div>
+
+                  {message && (
+                    <div 
+                      style={{
+                        marginBottom: "16px",
+                        padding: "10px 14px",
+                        borderRadius: "6px",
+                        fontSize: "13px",
+                        fontWeight: "600",
+                        backgroundColor: message.toLowerCase().includes("success") ? "#e6fffa" : "#fff5f5",
+                        color: message.toLowerCase().includes("success") ? "#234e52" : "#c53030",
+                        border: message.toLowerCase().includes("success") ? "1px solid #b2f5ea" : "1px solid #fed7d7"
+                      }}
+                    >
+                      {message}
+                    </div>
+                  )}
+
                   <button type="submit" className="btn-primary">Save Changes</button>
                 </form>
               </div>
