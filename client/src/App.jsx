@@ -13,6 +13,16 @@ function App() {
   const [profileLastName, setProfileLastName] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const [role, setRole] = useState("");
+
+
+  const [eventTitle, setEventTitle] = useState("");
+  const [eventDescription, setEventDescription] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [eventTime, setEventTime] = useState("");
+  const [eventLocation, setEventLocation] = useState("");
+  const [eventCapacity, setEventCapacity] = useState("");
+
 
   // Send the registration information to the backend
   async function registerUser(event) {
@@ -117,6 +127,7 @@ function App() {
       setProfileFirstName(data.first_name);
       setProfileLastName(data.last_name);
       setEmail(data.email);
+      setRole(data.role);
       setMessage(
         "Name: " + data.first_name + " " + data.last_name +
         ", Email: " + data.email +
@@ -169,6 +180,42 @@ function App() {
       setIsLoggedIn(false);
     }
   }
+
+
+  // Create a new event
+  async function createEvent(event) {
+    event.preventDefault();
+
+    const response = await fetch("http://localhost:5000/api/events", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        title: eventTitle,
+        description: eventDescription,
+        date: eventDate,
+        time: eventTime,
+        location: eventLocation,
+        capacity: eventCapacity
+      })
+    });
+
+    const data = await response.json();
+
+    setMessage(data.message);
+
+    if (response.ok) {
+      setEventTitle("");
+      setEventDescription("");
+      setEventDate("");
+      setEventTime("");
+      setEventLocation("");
+      setEventCapacity("");
+    }
+  }
+
 
   // Display the applicatio
   return (
@@ -274,42 +321,136 @@ function App() {
 
     {isLoggedIn && (
       <>
-    <button type="button" onClick={checkSession}> Check Session </button>
-    <button type="button" onClick={getProfile}> View Profile </button>
+        <h1>{role} Dashboard</h1>
 
-    <div>
-      <h3>Update Profile</h3>
-
-      <input
-        type="text"
-        placeholder="First Name"
-        value={profileFirstName}
-        onChange={(event) => setProfileFirstName(event.target.value)}
-      />
-
-      <input
-        type="text"
-        placeholder="Last Name"
-        value={profileLastName}
-        onChange={(event) => setProfileLastName(event.target.value)}
-      />
-
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-
-      <button type="button" onClick={updateProfile}>
-        Update Profile
-      </button>
-    </div>
+        {role === "Administrator" && (
+          <div>
+            <h3>Administrator Options</h3>
+            {/* We will add event management options here */}
+          </div>
+        )}
 
 
-    <button type="button" onClick={logoutUser}> Logout </button>
-    {/* Display messages from the server */}
-      <p>{message}</p>
+        {role === "Organizer" && (
+          <div>
+            <h3>Organizer Options</h3>
+            <h4>Create Event</h4>
+
+            <form onSubmit={createEvent}>
+              <div>
+                <label>Event Title</label>
+                <input
+                  type="text"
+                  maxLength="200"
+                  required
+                  value={eventTitle}
+                  onChange={(event) => setEventTitle(event.target.value)}
+                />
+              </div>
+
+              <div>
+                <label>Description</label>
+                <textarea
+                  maxLength="5000"
+                  required
+                  value={eventDescription}
+                  onChange={(event) => setEventDescription(event.target.value)}
+                />
+              </div>
+
+              <div>
+                <label>Date</label>
+                <input
+                  type="date"
+                  required
+                  min={new Date().toLocaleDateString("en-CA")}
+                  value={eventDate}
+                  onChange={(event) => setEventDate(event.target.value)}
+                />
+              </div>
+
+              <div>
+                <label>Time</label>
+                <input
+                  type="time"
+                  required
+                  value={eventTime}
+                  onChange={(event) => setEventTime(event.target.value)}
+                />
+              </div>
+
+              <div>
+                <label>Location</label>
+                <input
+                  type="text"
+                  maxLength="1000"
+                  required
+                  value={eventLocation}
+                  onChange={(event) => setEventLocation(event.target.value)}
+                />
+              </div>
+
+              <div>
+                <label>Capacity</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="100000"
+                  step="1"
+                  required
+                  value={eventCapacity}
+                  onChange={(event) => setEventCapacity(event.target.value)}
+                />
+              </div>
+
+              <button type="submit">Create Event</button>
+            </form>
+          </div>
+        )}
+
+
+        {role === "Regular User" && (
+          <div>
+            <h3>User Options</h3>
+            {/* We will add ticket booking options here */}
+          </div>
+        )}
+        <button type="button" onClick={checkSession}> Check Session </button>
+        <button type="button" onClick={getProfile}> View Profile </button>
+
+        <div>
+          <h3>Update Profile</h3>
+
+          <input
+            type="text"
+            placeholder="First Name"
+            value={profileFirstName}
+            onChange={(event) => setProfileFirstName(event.target.value)}
+          />
+
+          <input
+            type="text"
+            placeholder="Last Name"
+            value={profileLastName}
+            onChange={(event) => setProfileLastName(event.target.value)}
+          />
+
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+
+          <button type="button" onClick={updateProfile}>
+            Update Profile
+          </button>
+        </div>
+
+
+        <button type="button" onClick={logoutUser}> Logout </button>
+        {/* Display messages from the server */}
+          <p>{message}</p>
       </>
     )}
     </div>
