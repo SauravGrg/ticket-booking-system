@@ -9,24 +9,38 @@ const pgSession = require("connect-pg-simple")(session);
 const isValidPassword = require("./password");
 
 const app = express();
-const port = 5000;
+const port = process.env.PORT || 5000;
+
+app.set("trust proxy", 1);
 
 app.use(express.json());
 
+const allowedOrigin = process.env.CLIENT_URL || "http://localhost:5173";
+
 // Allow the React frontend to communicate with the backend
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: allowedOrigin,
     credentials: true
 }))
 
+// Check if a cloud connection string is provided
+const isProduction = process.env.NODE_ENV === "production";
+
 // Create a connection pool for PostgreSQL
-const pool = new Pool({
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    database: process.env.DB_NAME,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-});
+const pool = new Pool(
+    process.env.DATABASE_URL
+        ? {
+              connectionString: process.env.DATABASE_URL,
+              ssl: isProduction ? { rejectUnauthorized: false } : false
+          }
+        : {
+              host: process.env.DB_HOST,
+              port: process.env.DB_PORT,
+              database: process.env.DB_NAME,
+              user: process.env.DB_USER,
+              password: process.env.DB_PASSWORD
+          }
+);
 
 // Configure sessions for logged-in users
 app.use(session({
@@ -36,7 +50,7 @@ app.use(session({
         createTableIfMissing: true
     }),
     // Secret key used to protect the session
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET || "fallback_capstone_secret",
     // Do not save the session again if nothing changed
     resave: false,
     // Do not create a session until something is stored in it
@@ -44,7 +58,8 @@ app.use(session({
     // Configure the session cookie
     cookie: {
         httpOnly: true,
-        secure: false,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         // Session expires after 1 hour
         maxAge: 1000 * 60 * 60
     }
@@ -52,7 +67,7 @@ app.use(session({
 
 // Test route to make sure the server is running
 app.get("/", (req, res) => {
-    res.send("Hello World! I am runnin on port 5000 right now");
+    res.send(`Server is running on port ${port}`);
 });
 
 // Register a new user

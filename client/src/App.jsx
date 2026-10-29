@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import "./App.css";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 // Store the values entered into the registration form
 function App() {
   const [activeTab, setActiveTab] = useState("home");
@@ -33,7 +35,7 @@ function App() {
   useEffect(() => {
     async function loadSession() {
       try {
-        const response = await fetch("http://localhost:5000/api/session", {
+        const response = await fetch(`${API_BASE_URL}/api/session`, {
           credentials: "include"
         });
         const data = await response.json();
@@ -63,7 +65,7 @@ function App() {
     event.preventDefault();
 
     try {
-      const response = await fetch("http://localhost:5000/api/register", {
+      const response = await fetch(`${API_BASE_URL}/api/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -96,7 +98,7 @@ function App() {
     event.preventDefault();
 
     // Send a POST request to the login route
-    const response = await fetch("http://localhost:5000/api/login", {
+    const response = await fetch(`${API_BASE_URL}/api/login`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -121,7 +123,7 @@ function App() {
 
   // Get the profile information of the logged-in user
   async function getProfile() {
-    const response = await fetch("http://localhost:5000/api/profile", {
+    const response = await fetch(`${API_BASE_URL}/api/profile`, {
       credentials: "include"
     });
 
@@ -150,7 +152,7 @@ function App() {
       payload.password = newPassword;
     }
 
-    const response = await fetch("http://localhost:5000/api/profile", {
+    const response = await fetch(`${API_BASE_URL}/api/profile`, {
       method: "PUT",
       credentials: "include",
       headers: {
@@ -170,7 +172,7 @@ function App() {
 
   // Fetch all events created by the logged-in organizer
   async function fetchOrganizerEvents() {
-    const response = await fetch("http://localhost:5000/api/organizer/events", {
+    const response = await fetch(`${API_BASE_URL}/api/organizer/events`, {
       credentials: "include"
     });
     if (response.ok) {
@@ -183,7 +185,7 @@ function App() {
   async function createEvent(event) {
     event.preventDefault();
 
-    const response = await fetch("http://localhost:5000/api/events", {
+    const response = await fetch(`${API_BASE_URL}/api/events`, {
       method: "POST",
       credentials: "include",
       headers: {
@@ -216,7 +218,7 @@ function App() {
 
   // Log the current user out
   async function logoutUser() {
-    const response = await fetch("http://localhost:5000/api/logout", {
+    const response = await fetch(`${API_BASE_URL}/api/logout`, {
       method: "POST",
       credentials: "include"
     });
