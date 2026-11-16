@@ -1,4 +1,4 @@
-const validateProfileUpdate = require("../profileValidator");
+const validateProfileUpdate = require("../utils/profileValidator");
 
 test("valid profile update without password change should return true", () => {
     const result = validateProfileUpdate({

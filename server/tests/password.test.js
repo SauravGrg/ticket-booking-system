@@ -1,4 +1,4 @@
-const isValidPassword = require("../password");
+const isValidPassword = require("../utils/password");
 
 test("valid password should return true", () => {
     expect(isValidPassword("@Password123")).toBe(true);

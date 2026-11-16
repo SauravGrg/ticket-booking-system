@@ -1,4 +1,4 @@
-const { isValidRole, isAdmin, isOrganizer } = require("../roleValidator");
+const { isValidRole, isAdmin, isOrganizer } = require("../utils/roleValidator");
 
 test("valid system roles should return true", () => {
     expect(isValidRole("Administrator")).toBe(true);
