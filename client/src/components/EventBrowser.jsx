@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { API_BASE_URL } from "../config";
 import EventCard from "./EventCard";
+import EventDetails from "./EventDetails";
 
 // List of upcoming events (Regular User / Administrator)
 function EventBrowser() {
     const [events, setEvents] = useState([]);
     const [error, setError] = useState("");
+    const [selectedEventId, setSelectedEventId] = useState(null);
 
     // Load the events when the screen first appears
     useEffect(() => {
@@ -30,6 +32,16 @@ function EventBrowser() {
         loadEvents();
     }, []);
 
+    // Show one event's details instead of the list
+    if (selectedEventId !== null) {
+        return (
+            <EventDetails 
+                eventId={selectedEventId}
+                onBack={() => setSelectedEventId(null)}
+            />
+        )
+    }
+
     return (
         <div>
         {error && <p style={{ color: "#c53030", marginBottom: "15px" }}>{error}</p>}
@@ -39,7 +51,11 @@ function EventBrowser() {
         ) : (
             <div className="event-grid">
                 {events.map((ev) => (
-                    <EventCard key={ev.event_id} ev={ev} />
+                    <EventCard 
+                        key={ev.event_id} 
+                        ev={ev} 
+                        onViewDetails={setSelectedEventId}
+                    />
                 ))}
             </div>
         )}

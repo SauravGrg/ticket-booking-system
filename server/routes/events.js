@@ -21,6 +21,32 @@ router.get("/api/events", requireLogin, async (req, res) => {
     }
 });
 
+// Get the full details of one event (any logged-in user)
+router.get("/api/events/:id", requireLogin, async (req, res) => {
+    // The id must be a whole number
+    if (!/^\d+$/.test(req.params.id)) {
+        return res.status(400).json({ message: "Invalid event id" });
+    }
+
+    try {
+        const result = await pool.query(
+            `SELECT e.*, (e.capacity - COALESCE(e.booked_count, 0)) AS remaining_capacity
+            FROM events e
+            WHERE e.event_id = $1`,
+            [req.params.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: "Event not found" });
+        }
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: "Something went wrong" });
+    }
+});
+
 // Get all events created by the logged-in organizer
 router.get("/api/organizer/events", checkRole("Organizer"), async (req, res) => {
     try {

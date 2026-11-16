@@ -10,6 +10,15 @@ function CreateEventForm({ setMessage, fetchOrganizerEvents }) {
     const [eventLocation, setEventLocation] = useState("");
     const [eventCapacity, setEventCapacity] = useState("");
 
+    // Open the date/time picker when the field is clicked (typing still works)
+    function openPicker(e) {
+        try {
+            e.target.showPicker();
+        } catch (err) {
+            // Older browsers without showPicker() just keep the normal field
+        }
+    }
+
     // Create a new event
     async function createEvent(event) {
         event.preventDefault();
@@ -67,7 +76,9 @@ function CreateEventForm({ setMessage, fetchOrganizerEvents }) {
                         type="date"
                         required
                         min={new Date().toLocaleDateString("en-CA")}
+                        max="9999-12-31"
                         value={eventDate}
+                        onClick={openPicker}
                         onChange={(e) => setEventDate(e.target.value)}
                     />
                     </div>
@@ -99,6 +110,7 @@ function CreateEventForm({ setMessage, fetchOrganizerEvents }) {
                         type="time"
                         required
                         value={eventTime}
+                        onClick={openPicker}
                         onChange={(e) => setEventTime(e.target.value)}
                     />
                     </div>
