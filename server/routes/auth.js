@@ -1,7 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const pool = require("../config/db");
-const isValidPassword = require("../password");
+const isValidPassword = require("../utils/password");
 
 const router = express.Router();
 

@@ -1,8 +1,25 @@
 const express = require("express");
 const pool = require("../config/db");
 const checkRole = require("../middleware/checkRole");
+const requireLogin = require("../middleware/requireLogin");
 
 const router = express.Router();
+
+// Browse upcoming events (any logged-in user)
+router.get("/api/events", requireLogin, async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT e.*, (e.capacity - COALESCE(e.booked_count, 0)) AS remaining_capacity
+            FROM events e
+            WHERE e.status = 'Active' AND e.date >= CURRENT_DATE
+            ORDER BY e.date ASC, e.time ASC`
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: "Something went wrong" });
+    }
+});
 
 // Get all events created by the logged-in organizer
 router.get("/api/organizer/events", checkRole("Organizer"), async (req, res) => {

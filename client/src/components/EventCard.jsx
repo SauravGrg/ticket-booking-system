@@ -10,6 +10,11 @@ function EventCard({ ev }) {
         </div>
         <div>
             <span className="badge">Capacity: {ev.capacity}</span>
+            {ev.remaining_capacity !== undefined && (
+                <span className="badge" style={{ marginLeft: "8px" }}>
+                    Remaining Seats: {ev.remaining_capacity}
+                </span>
+                )}
             <span className="badge" style={{ marginLeft: "8px", backgroundColor: "#c6f6d5", color: "#22543d" }}>
                 {ev.status}
             </span>
