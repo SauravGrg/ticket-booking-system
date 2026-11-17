@@ -2,6 +2,7 @@ const express = require("express");
 const pool = require("../config/db");
 const checkRole = require("../middleware/checkRole");
 const requireLogin = require("../middleware/requireLogin");
+const { buildEventsQuery, isValidDateString } = require("../utils/eventQuery")
 
 const router = express.Router();
 
@@ -9,38 +10,15 @@ const router = express.Router();
 router.get("/api/events", requireLogin, async (req, res) => {
     const { search, date, sort } = req.query;
 
-    const conditions = ["e.status = 'Active'", "e.date >= CURRENT_DATE"];
-    const values = [];
-
-    // Search by title or location
-    if (typeof search === "string" && search.trim() !== "") {
-        // Escape LIKE wildcards so the text is matched literally
-        const escaped = search.trim().replace(/[\\%_]/g, "\\$&");
-        values.push(`%${escaped}%`);
-        conditions.push(`(e.title ILIKE $${values.length} OR e.location ILIKE $${values.length})`);
-    }
-
     // Filter by date
-    if (date !== undefined && date !== "") {
-        if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-            return res.status(400).json({message: "Invalid data filter"});
-        }
-        values.push(date);
-        conditions.push(`e.date = $${values.length}`);
+    if (date !== undefined && date !== "" && !isValidDateString(date)) {
+        return res.status(400).json({message: "Invalid data filter"});
     }
-
-    const orderBy = sort === "date_desc"
-        ? "e.date DESC, e.time DESC"
-        : "e.date ASC, e.time ASC";
 
     try {
-        const result = await pool.query(
-            `SELECT e.*, (e.capacity - COALESCE(e.booked_count, 0)) AS remaining_capacity
-            FROM events e
-            WHERE ${conditions.join(" AND ")}
-            ORDER BY ${orderBy}`,
-            values
-        );
+        // The SQL for search, date filter and sort is built in utils/eventQuery.js
+        const query = buildEventsQuery({ search, date, sort });
+        const result = await pool.query(query.text, query.values);
         res.json(result.rows);
     } catch (err) {
         // 22007 / 22008 = not a real date (for example 2026-02-31)

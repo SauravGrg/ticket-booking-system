@@ -8,7 +8,7 @@ function EventBrowser() {
     const [events, setEvents] = useState([]);
     const [search, setSearch] = useState("");
     const [date, setDate] = useState("");
-    const [sort, setSort] = useState("date_asc");
+    const [sort, setSort] = useState("date_desc");
     const [error, setError] = useState("");
     const [selectedEventId, setSelectedEventId] = useState(null);
 
