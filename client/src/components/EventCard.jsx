@@ -1,3 +1,5 @@
+import { formatTime } from "../utils/formatTime";
+
 // A single event card
 // Optional: onViewDetails shows a "View Details" button,
 // and remaining_capacity (when the server sends it) shows the seats left.
@@ -7,7 +9,7 @@ function EventCard({ ev, onViewDetails }) {
             <div>
                 <h4>{ev.title}</h4>
                 <p>{ev.description}</p>
-                <p><strong>Date:</strong> {ev.date ? ev.date.substring(0, 10) : ""} at {ev.time}</p>
+                <p><strong>Date:</strong> {ev.date ? ev.date.substring(0, 10) : ""} at {formatTime(ev.time)}</p>
                 <p><strong>Location:</strong> {ev.location}</p>
             </div>
         <div>

@@ -7,8 +7,7 @@ const router = express.Router();
 
 // Browse upcoming events (any logged-in user)
 router.get("/api/events", requireLogin, async (req, res) => {
-    const { search } = req.query;
-    console.log("SEARCH RECEIVED:", search);
+    const { search, date, sort } = req.query;
 
     const conditions = ["e.status = 'Active'", "e.date >= CURRENT_DATE"];
     const values = [];
@@ -21,17 +20,33 @@ router.get("/api/events", requireLogin, async (req, res) => {
         conditions.push(`(e.title ILIKE $${values.length} OR e.location ILIKE $${values.length})`);
     }
 
+    // Filter by date
+    if (date !== undefined && date !== "") {
+        if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            return res.status(400).json({message: "Invalid data filter"});
+        }
+        values.push(date);
+        conditions.push(`e.date = $${values.length}`);
+    }
+
+    const orderBy = sort === "date_desc"
+        ? "e.date DESC, e.time DESC"
+        : "e.date ASC, e.time ASC";
+
     try {
         const result = await pool.query(
             `SELECT e.*, (e.capacity - COALESCE(e.booked_count, 0)) AS remaining_capacity
             FROM events e
             WHERE ${conditions.join(" AND ")}
-            ORDER BY e.date ASC, e.time ASC`,
-            
+            ORDER BY ${orderBy}`,
             values
         );
         res.json(result.rows);
     } catch (err) {
+        // 22007 / 22008 = not a real date (for example 2026-02-31)
+        if (err.code === "22007" || err.code === "22008") {
+            return res.status(400).json({ message: "Invalid date filter" });
+        }
         console.error(err.message);
         res.status(500).json({ message: "Something went wrong" });
     }

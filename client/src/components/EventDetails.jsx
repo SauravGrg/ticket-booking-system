@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { API_BASE_URL } from "../config";
+import { formatTime } from "../utils/formatTime";
 
 // Full details of one event
 function EventDetails({ eventId, onBack }) {
@@ -42,7 +43,7 @@ function EventDetails({ eventId, onBack }) {
             <h3>{event.title}</h3>
             <p><strong>Description:</strong> {event.description}</p>
             <p>
-                <strong>Date &amp; Time:</strong> {event.date ? event.date.substring(0, 10) : ""} at {event.time}
+                <strong>Date &amp; Time:</strong> {event.date ? event.date.substring(0, 10) : ""} at {formatTime(event.time)}
             </p>
             <p><strong>Location:</strong> {event.location}</p>
             <p><strong>Seats Left:</strong> {event.remaining_capacity}</p>
