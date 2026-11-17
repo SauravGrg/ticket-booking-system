@@ -7,12 +7,28 @@ const router = express.Router();
 
 // Browse upcoming events (any logged-in user)
 router.get("/api/events", requireLogin, async (req, res) => {
+    const { search } = req.query;
+    console.log("SEARCH RECEIVED:", search);
+
+    const conditions = ["e.status = 'Active'", "e.date >= CURRENT_DATE"];
+    const values = [];
+
+    // Search by title or location
+    if (typeof search === "string" && search.trim() !== "") {
+        // Escape LIKE wildcards so the text is matched literally
+        const escaped = search.trim().replace(/[\\%_]/g, "\\$&");
+        values.push(`%${escaped}%`);
+        conditions.push(`(e.title ILIKE $${values.length} OR e.location ILIKE $${values.length})`);
+    }
+
     try {
         const result = await pool.query(
             `SELECT e.*, (e.capacity - COALESCE(e.booked_count, 0)) AS remaining_capacity
             FROM events e
-            WHERE e.status = 'Active' AND e.date >= CURRENT_DATE
-            ORDER BY e.date ASC, e.time ASC`
+            WHERE ${conditions.join(" AND ")}
+            ORDER BY e.date ASC, e.time ASC`,
+            
+            values
         );
         res.json(result.rows);
     } catch (err) {
@@ -23,11 +39,6 @@ router.get("/api/events", requireLogin, async (req, res) => {
 
 // Get the full details of one event (any logged-in user)
 router.get("/api/events/:id", requireLogin, async (req, res) => {
-    // The id must be a whole number
-    if (!/^\d+$/.test(req.params.id)) {
-        return res.status(400).json({ message: "Invalid event id" });
-    }
-
     try {
         const result = await pool.query(
             `SELECT e.*, (e.capacity - COALESCE(e.booked_count, 0)) AS remaining_capacity
@@ -42,6 +53,11 @@ router.get("/api/events/:id", requireLogin, async (req, res) => {
 
         res.json(result.rows[0]);
     } catch (err) {
+        // 22P02 = the id is not a valid value for the event_id column type
+        if (err.code === "22P02") {
+            return res.status(400).json({ message: "Invalid event id" });
+        }
+
         console.error(err.message);
         res.status(500).json({ message: "Something went wrong" });
     }
