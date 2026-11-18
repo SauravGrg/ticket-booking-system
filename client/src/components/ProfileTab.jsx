@@ -1,29 +1,45 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../config";
 import MessageBanner from "./MessageBanner";
 
 // Profile tab: edit name, email and (optionally) password
 function ProfileTab({
     profileFirstName,
-    setProfileFirstName,
     profileLastName,
-    setProfileLastName,
     email,
-    setEmail,
     message,
     setMessage,
     getProfile
 }) {
+    // Local copies of the form fields. The top bar keeps using the saved
+    // values from App, so it only changes after "Save Changes" succeeds.
+    const [firstName, setFirstName] = useState(profileFirstName);
+    const [lastName, setLastName] = useState(profileLastName);
+    const [emailInput, setEmailInput] = useState(email);
     const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+
+    // When the saved profile loads or changes, refresh the form fields
+    useEffect(() => {
+        setFirstName(profileFirstName);
+        setLastName(profileLastName);
+        setEmailInput(email);
+    }, [profileFirstName, profileLastName, email]);
 
     // Update the user's profile
     async function updateProfile(event) {
         if (event) event.preventDefault();
 
+        // Both password boxes must match before we send anything
+        if (newPassword !== confirmPassword) {
+            setMessage("Passwords do not match.");
+            return;
+        }
+
         const payload = {
-            first_name: profileFirstName,
-            last_name: profileLastName,
-            email: email
+            first_name: firstName,
+            last_name: lastName,
+            email: emailInput
         };
 
         if (newPassword && newPassword.trim() !== "") {
@@ -35,7 +51,7 @@ function ProfileTab({
             method: "PUT",
             credentials: "include",
             headers: {
-            "Content-Type": "application/json"
+                "Content-Type": "application/json"
             },
             body: JSON.stringify(payload)
         });
@@ -46,7 +62,8 @@ function ProfileTab({
         setMessage(data.message);
         if (response.ok) {
             setNewPassword("");
-            getProfile();
+            setConfirmPassword("");
+            getProfile(); // reloads the saved name, so the top bar updates now
         }
     } catch (err) {
         console.error("Profile update error:", err);
@@ -63,8 +80,8 @@ function ProfileTab({
             <input
                 type="text"
                 required
-                value={profileFirstName}
-                onChange={(e) => setProfileFirstName(e.target.value)}
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
             />
             </div>
             <div className="form-group">
@@ -72,8 +89,8 @@ function ProfileTab({
             <input
                 type="text"
                 required
-                value={profileLastName}
-                onChange={(e) => setProfileLastName(e.target.value)}
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
             />
             </div>
             <div className="form-group">
@@ -81,8 +98,8 @@ function ProfileTab({
             <input
                 type="email"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
             />
             </div>
             <div className="form-group">
@@ -93,6 +110,15 @@ function ProfileTab({
                 onChange={(e) => setNewPassword(e.target.value)}
             />
             </div>
+            <div className="form-group">
+            <label>Confirm New Password (optional)</label>
+            <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+            </div>
+            
 
             <MessageBanner message={message} style={{ marginBottom: "16px" }} />
 

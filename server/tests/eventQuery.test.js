@@ -1,12 +1,10 @@
 const { buildEventsQuery, isValidDateString } = require("../utils/eventQuery");
 
-/* ---------------------------------------- PART 1:  MAIN TESTS -----------------------------------------*/
+/* ============================ PART 1:  MAIN TESTS ======================================*/
 
 
-/* --------------------------------------------------------------------
-   SECTION 1.1  |  F3.1  |  EVENT LIST (DEFAULT QUERY)
-   With no filters, users see active events from today onward, with the latest event first.
-   -------------------------------------------------------------------- */
+/* -------------------------- EVENT LIST (DEFAULT QUERY) -------------------------------- */
+
 describe("F3.1 - Event list (default query)", () => {
     // No search, date or sort given: only active, upcoming events, earliest first
     test("no filters returns active upcoming events sorted by date ascending", () => {
@@ -19,10 +17,8 @@ describe("F3.1 - Event list (default query)", () => {
 });
 
 
-/* --------------------------------------------------------------------
-   SECTION 1.2  |  F3.4  |  SEARCH BY TITLE OR LOCATION
-   The search text is matched against the event title OR location.
-   -------------------------------------------------------------------- */
+/* -------------------------- SEARCH BY TITLE OR LOCATION -------------------------------- */
+
 describe("F3.4 - Search by title or location", () => {
     // Search text becomes one parameter, used for both title and location; spaces are trimmed
     test("search matches title or location using a parameter", () => {
@@ -45,10 +41,8 @@ describe("F3.4 - Search by title or location", () => {
 });
 
 
-/* --------------------------------------------------------------------
-   SECTION 1.3  |  F3.5  |  FILTER BY DATE
-   Only events happening on the chosen day are returned.
-   -------------------------------------------------------------------- */
+/* -------------------------- FILTER BY DATE -------------------------------- */
+
 describe("F3.5 - Filter by date", () => {
     // A date adds an exact-match condition on the event date
     test("date filter adds an exact date condition", () => {
@@ -67,10 +61,8 @@ describe("F3.5 - Filter by date", () => {
 });
 
 
-/* --------------------------------------------------------------------
-   SECTION 1.4  |  F3.5  |  DATE VALIDATION
-   The route uses isValidDateString to reject bad dates with a 400 error.
-   -------------------------------------------------------------------- */
+/* -------------------------- DATE VALIDATION -------------------------------- */
+
 describe("F3.5 - Date validation", () => {
     // Correct format and a real calendar date
     test("accepts a real date", () => {
@@ -95,10 +87,8 @@ describe("F3.5 - Date validation", () => {
 });
 
 
-/* --------------------------------------------------------------------
-   SECTION 1.5  |  F3.6  |  SORT BY DATE
-   Users can sort Oldest to Newest (default) or Newest to Oldest.
-   -------------------------------------------------------------------- */
+/* -------------------------- SORT BY DATE -------------------------------- */
+
 describe("F3.6 - Sort by date", () => {
     // date_desc puts the furthest date first
     test("sort by date descending", () => {
@@ -115,10 +105,8 @@ describe("F3.6 - Sort by date", () => {
 });
 
 
-/* --------------------------------------------------------------------
-   SECTION 1.6  |  NFR1.1  |  SQL INJECTION PROTECTION
-   User input must only travel as query values, never inside the SQL text.
-   -------------------------------------------------------------------- */
+/* -------------------------- SQL INJECTION PROTECTION -------------------------------- */
+
 describe("NFR1.1 - SQL injection protection", () => {
     // An attack string is passed as a value, so the database treats it as plain text
     test("SQL injection text stays in the values, not in the query", () => {
@@ -136,13 +124,11 @@ describe("NFR1.1 - SQL injection protection", () => {
 });
 
 
-/* ---------------------------- PART 2: Extra edge cases for more protection -----------------------------*/
+/* ===================== PART 2: Extra edge cases for more protection ======================*/
 
 
-/* --------------------------------------------------------------------
-   SECTION 2.1  |  SEARCH EDGE CASES
-   Unusual search text must be kept as typed and never break the query.
-   -------------------------------------------------------------------- */
+/* -------------------------- SEARCH EDGE CASES -------------------------------- */
+
 describe("Additional - Search edge cases", () => {
     // A single quote is normal text, and cannot end the SQL string
     test("search text with an apostrophe stays in the values", () => {
@@ -179,10 +165,8 @@ describe("Additional - Search edge cases", () => {
 });
 
 
-/* --------------------------------------------------------------------
-   SECTION 2.2  |  QUERY STRUCTURE
-   Checks the overall shape of the generated query.
-   -------------------------------------------------------------------- */
+/* -------------------------- QUERY STRUCTURE -------------------------------- */
+
 describe("Additional - Query structure", () => {
     // Calling the helper with nothing must not throw
     test("calling it with no arguments does not crash", () => {
@@ -231,10 +215,8 @@ describe("Additional - Query structure", () => {
 });
 
 
-/* --------------------------------------------------------------------
-   SECTION 2.3  |  DATE VALIDATION EDGE CASES
-   Tricky dates that a simple format check would let through.
-   -------------------------------------------------------------------- */
+/* -------------------------- DATE VALIDATION EDGE CASES -------------------------------- */
+
 describe("Additional - Date validation edge cases", () => {
     // 2028 is a leap year, so February 29 exists
     test("accepts a leap day in a leap year", () => {
